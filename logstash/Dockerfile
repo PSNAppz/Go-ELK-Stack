@@ -1,4 +1,6 @@
-FROM docker.elastic.co/logstash/logstash:8.6.2
+ARG ELASTIC_VERSION
+
+FROM docker.elastic.co/logstash/logstash:${ELASTIC_VERSION}
 
 RUN /opt/logstash/bin/logstash-plugin install logstash-integration-jdbc
 RUN mkdir /opt/logstash/vendor/jdbc
