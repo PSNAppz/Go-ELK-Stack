@@ -1,5 +1,5 @@
 CREATE TABLE users (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+    id SERIAL PRIMARY KEY,
     name VARCHAR(255),
     created_at TIMESTAMP
 );

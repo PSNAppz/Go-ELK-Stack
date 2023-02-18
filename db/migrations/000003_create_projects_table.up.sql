@@ -1,5 +1,5 @@
 CREATE TABLE projects (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+    id SERIAL PRIMARY KEY,
     name VARCHAR(255),
     slug VARCHAR(255),
     description TEXT,
