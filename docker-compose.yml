@@ -35,6 +35,20 @@ services:
     volumes:
       - esdata:/usr/share/elasticsearch/data
 
+  # This code shows how to run logstash with a custom pipeline configuration.
+
+  logstash:
+    build:
+      context: logstash
+    env_file: .env
+    volumes:
+      - ./logstash/config/pipelines.yml:/usr/share/logstash/config/pipelines.yml
+      - ./logstash/pipelines/:/usr/share/logstash/pipeline/
+      - ./logstash/queries/:/usr/share/logstash/config/queries/
+    depends_on:
+      - postgres
+      - elasticsearch
+
 volumes:
   pgdata:
     driver: local
