@@ -46,6 +46,5 @@ func (h *Handler) Register(group *gin.RouterGroup) {
 	group.GET("/projects", h.GetProjects)
 
 	// Define routes for search
-	group.GET("/search", h.SearchProjects)
-	group.GET("/fuzzy_search/", h.FuzzySearchProjects)
+	group.GET("/search", h.Search)
 }

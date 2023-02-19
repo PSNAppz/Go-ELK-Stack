@@ -205,78 +205,83 @@ func (h *Handler) GetProject(c *gin.Context) {
 	}
 }
 
-func (h *Handler) SearchProjects(c *gin.Context) {
+// func (h *Handler) SearchProjects(c *gin.Context) {
+// 	// Get the search query from the request
+// 	var query string
+// 	if query, _ = c.GetQuery("q"); query == "" {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "no search query present"})
+// 		return
+// 	}
+
+// 	// Create the search query
+// 	// Here the code searches for a query string in the name, slug, and
+// 	// description fields.
+// 	body := fmt.Sprintf(`{
+// 		"query": {
+// 			"multi_match": {
+// 				"query": "%s",
+// 				"fields": [
+// 					"name",
+// 					"slug",
+// 					"description",
+// 					"user_name",
+// 					"hashtags"
+// 				]
+// 			}
+// 		}
+// 	}`, query)
+
+// 	// Execute the search query
+// 	res, err := h.ESClient.Search(
+// 		h.ESClient.Search.WithContext(context.Background()),
+// 		h.ESClient.Search.WithIndex("projects"),
+// 		h.ESClient.Search.WithBody(strings.NewReader(body)),
+// 		h.ESClient.Search.WithPretty(),
+// 	)
+// 	if err != nil {
+// 		h.Logger.Err(err).Msg("elasticsearch error")
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+// 		return
+// 	}
+// 	defer res.Body.Close()
+// 	if res.IsError() {
+// 		var e map[string]interface{}
+// 		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
+// 			h.Logger.Err(err).Msg("error parsing the response body")
+// 		} else {
+// 			// Print the response status and error information.
+// 			h.Logger.Err(fmt.Errorf("[%s] %s: %s",
+// 				res.Status(),
+// 				e["error"].(map[string]interface{})["type"],
+// 				e["error"].(map[string]interface{})["reason"],
+// 			)).Msg("failed to search query")
+// 		}
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": e["error"].(map[string]interface{})["reason"]})
+// 		return
+// 	}
+
+// 	h.Logger.Info().Interface("res", res.Status())
+
+// 	// Decodes the response body of the Elasticsearch query into the map r
+// 	var r map[string]interface{}
+// 	if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
+// 		h.Logger.Err(err).Msg("elasticsearch error")
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+// 		return
+// 	}
+// 	c.JSON(http.StatusOK, gin.H{"data": r["hits"]})
+// }
+
+func (h *Handler) Search(c *gin.Context) {
 	// Get the search query from the request
 	var query string
 	if query, _ = c.GetQuery("q"); query == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "no search query present"})
 		return
 	}
-
-	// Create the search query
-	// Here the code searches for a query string in the name, slug, and
-	// description fields.
-	body := fmt.Sprintf(`{
-		"query": {
-			"multi_match": {
-				"query": "%s",
-				"fields": [
-					"name",
-					"slug",
-					"description",
-					"user_name",
-					"hashtags"
-				]
-			}
-		}
-	}`, query)
-
-	// Execute the search query
-	res, err := h.ESClient.Search(
-		h.ESClient.Search.WithContext(context.Background()),
-		h.ESClient.Search.WithIndex("projects"),
-		h.ESClient.Search.WithBody(strings.NewReader(body)),
-		h.ESClient.Search.WithPretty(),
-	)
+	searchType, err := strconv.Atoi(c.DefaultQuery("searchType", "0"))
 	if err != nil {
-		h.Logger.Err(err).Msg("elasticsearch error")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	defer res.Body.Close()
-	if res.IsError() {
-		var e map[string]interface{}
-		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-			h.Logger.Err(err).Msg("error parsing the response body")
-		} else {
-			// Print the response status and error information.
-			h.Logger.Err(fmt.Errorf("[%s] %s: %s",
-				res.Status(),
-				e["error"].(map[string]interface{})["type"],
-				e["error"].(map[string]interface{})["reason"],
-			)).Msg("failed to search query")
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": e["error"].(map[string]interface{})["reason"]})
-		return
-	}
-
-	h.Logger.Info().Interface("res", res.Status())
-
-	// Decodes the response body of the Elasticsearch query into the map r
-	var r map[string]interface{}
-	if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
-		h.Logger.Err(err).Msg("elasticsearch error")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"data": r["hits"]})
-}
-
-func (h *Handler) FuzzySearchProjects(c *gin.Context) {
-	// Get the search query from the request
-	var query string
-	if query, _ = c.GetQuery("q"); query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "no search query present"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "searchType must be an integer"})
 		return
 	}
 	// Get the fuzziness from the request
@@ -287,19 +292,45 @@ func (h *Handler) FuzzySearchProjects(c *gin.Context) {
 	}
 
 	// Create the search query
-	// Here the code searches for a query string in the name, slug,
-	// description, user_name and hashtag fields.
 	// Fuzziness is set to 1 by default, which means that the search will return results
-	// that are one edit away from the query string.
-	body := fmt.Sprintf(`{
-        "query": {
-            "multi_match": {
-                "query": "%s",
-                "fields": ["name", "slug", "description", "user_name", "hashtags"],
-                "fuzziness": %d
-            }
-        }
-    }`, query, fuzziness)
+	// that are one edit away from the query string. This can be overridden in the request
+	var body string
+	switch searchType {
+	// Search for a query string in the user_name field
+	case 0:
+		body = fmt.Sprintf(`{
+			"query": {
+				"multi_match": {
+					"query": "%s",
+					"fields": ["user_name"],
+					"fuzziness": %d
+				}
+			}
+		}`, query, fuzziness)
+	// Search for a query string in the hashtags field
+	case 1:
+		body = fmt.Sprintf(`{
+			"query": {
+				"multi_match": {
+					"query": "%s",
+					"fields": ["hashtags"],
+					"fuzziness": %d
+				}
+			}
+		}`, query, fuzziness)
+		// Search for a query string in the slug and description fields
+	case 2:
+		body = fmt.Sprintf(`{
+			"query": {
+				"multi_match": {
+					"query": "%s",
+					"fields": ["slug", "description"],
+					"fuzziness": %d
+				}
+			}
+		}`, query, fuzziness)
+
+	}
 
 	// Execute the search query
 	res, err := h.ESClient.Search(
