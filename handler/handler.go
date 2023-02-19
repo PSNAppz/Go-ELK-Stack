@@ -36,6 +36,7 @@ func (h *Handler) Register(group *gin.RouterGroup) {
 	group.PATCH("/hashtags/:id", h.UpdateHashtag)
 	group.GET("/hashtags/:id", h.GetHashtag)
 	group.DELETE("/hashtags/:id", h.DeleteHashtag)
+	group.GET("/hashtags", h.GetHashtags)
 
 	// Define routes for posts
 	group.POST("/projects", h.CreateProject)

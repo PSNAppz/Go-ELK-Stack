@@ -45,7 +45,7 @@ func (db Database) CreateProject(project *models.Project, user *models.User, has
 	return nil
 }
 
-func (db Database) UpdateProject(projectId int, project models.Project) error {
+func (db Database) UpdateProject(projectId int, project models.Project, user *models.User, hashtags *[]models.Hashtag) error {
 	query := "UPDATE projects SET name=$1, slug=$2, description=$3 WHERE id=$4"
 	_, err := db.Conn.Exec(query, project.Name, project.Slug, project.Description, projectId)
 	if err != nil {
@@ -53,11 +53,39 @@ func (db Database) UpdateProject(projectId int, project models.Project) error {
 	}
 
 	project.ID = projectId
-	logQuery := "INSERT INTO project_logs(project_id, operation) VALUES ($1, $2, $3)"
+	logQuery := "INSERT INTO project_logs(project_id, operation) VALUES ($1, $2)"
 	_, err = db.Conn.Exec(logQuery, project.ID, updateOp)
 	if err != nil {
 		db.Logger.Err(err).Msg("could not log operation for logstash")
 	}
+
+	// Update project-user association
+	if user != nil {
+		userProjectQuery := `UPDATE user_projects SET user_id=$2 WHERE project_id=$1`
+		_, err = db.Conn.Exec(userProjectQuery, projectId, user.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Delete all existing project-hashtag associations
+	projectHashtagQuery := `DELETE FROM project_hashtags WHERE project_id=$1`
+	_, err = db.Conn.Exec(projectHashtagQuery, projectId)
+	if err != nil {
+		return err
+	}
+
+	// Update project-hashtag association
+	if hashtags != nil {
+		for _, hashtag := range *hashtags {
+			projectHashtagQuery := `INSERT INTO project_hashtags(project_id, hashtag_id) VALUES ($1, $2)`
+			_, err = db.Conn.Exec(projectHashtagQuery, projectId, hashtag.ID)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 

@@ -76,11 +76,24 @@ func (db Database) UpdateHashtag(hashtagId int, hashtag models.Hashtag) error {
 	return nil
 }
 
-// Delete the hashtag and all the associations with projects
+// Delete the hashtag and all the associations with projects using hashtag id
 func (db Database) DeleteProjectHashtagByHashtagId(hashtagId int) error {
 	query := "DELETE FROM project_hashtags WHERE hashtag_id=$1"
 	_, err := db.Conn.Exec(query, hashtagId)
 	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Delete the hashtag and all the associations with projects using project id
+func (db Database) DeleteProjectHashtagByProjectId(projectId int) error {
+	query := "DELETE FROM user_projects WHERE project_id=$1"
+	_, err := db.Conn.Exec(query, projectId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return ErrNoRecord
+		}
 		return err
 	}
 	return nil

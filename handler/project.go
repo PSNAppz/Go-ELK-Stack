@@ -32,17 +32,15 @@ func (h *Handler) CreateProject(c *gin.Context) {
 		return
 	}
 	// Create the hashtags for the project
-	hashtags := make([]models.Hashtag, len(req.Hashtags))
-	for i, hashtagName := range req.Hashtags {
+	hashtags := make([]models.Hashtag, 0)
+	for _, hashtagName := range req.Hashtags {
 		hashtag := models.Hashtag{Name: hashtagName}
 		tags, err := h.DB.GetOrCreateHashtags([]models.Hashtag{hashtag})
 		if err != nil {
 			return
 		}
-		hashtags = append(hashtags, tags[i])
+		hashtags = append(hashtags, tags[0])
 	}
-	// Remove the first element of the slice since it is empty
-	hashtags = hashtags[1:]
 	// Create the project and save it to the database
 	project := models.Project{
 		Name:        req.Name,
@@ -61,21 +59,45 @@ func (h *Handler) CreateProject(c *gin.Context) {
 func (h *Handler) UpdateProject(c *gin.Context) {
 	// Get the project ID from the URL
 	var id int
-	var project models.Project
+	var req models.CreateProjectRequest
 	var err error
 	if id, err = strconv.Atoi(c.Param("id")); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid project id"})
 		return
 	}
 
-	// Parse the JSON body into a Project object
-	if err = c.ShouldBindJSON(&project); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("could not parse request: %s", err.Error())})
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.Logger.Err(err).Msg("could not parse request body")
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body: %s", err.Error())})
 		return
 	}
 
+	// Get the user from the database and verify that the user exists
+	user, err := h.DB.GetUserById(req.UserID)
+	if err != nil {
+		h.Logger.Err(err).Msg("could not get user")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("could not get user: %s", err.Error())})
+		return
+	}
+	// Create the hashtags for the project
+	hashtags := make([]models.Hashtag, 0)
+	for _, hashtagName := range req.Hashtags {
+		hashtag := models.Hashtag{Name: hashtagName}
+		tags, err := h.DB.GetOrCreateHashtags([]models.Hashtag{hashtag})
+		if err != nil {
+			return
+		}
+		hashtags = append(hashtags, tags[0])
+	}
+
+	project := models.Project{
+		Name:        req.Name,
+		Slug:        req.Slug,
+		Description: req.Description,
+	}
+
 	// Update the project in the database
-	err = h.DB.UpdateProject(id, project)
+	err = h.DB.UpdateProject(id, project, &user, &hashtags)
 	if err != nil {
 		switch err {
 		case db.ErrNoRecord:
@@ -117,6 +139,21 @@ func (h *Handler) DeleteProject(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid project id"})
 		return
 	}
+	// Delete user_project associations
+	err = h.DB.DeleteUserProjectByProjectId(id)
+	if err != nil {
+		h.Logger.Err(err).Msg("could not delete user_project")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("could not delete user_project: %s", err.Error())})
+		return
+	}
+	// Delete project_hashtag associations
+	err = h.DB.DeleteProjectHashtagByProjectId(id)
+	if err != nil {
+		h.Logger.Err(err).Msg("could not delete project_hashtag")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("could not delete project_hashtag: %s", err.Error())})
+		return
+	}
+
 	err = h.DB.DeleteProject(id)
 	if err != nil {
 		if err == db.ErrNoRecord {

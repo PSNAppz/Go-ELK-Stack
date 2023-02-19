@@ -59,9 +59,23 @@ func (db Database) DeleteUser(userId int) error {
 	return nil
 }
 
+// Function to delete user project by user id
 func (db Database) DeleteUserProjectByUserId(userId int) error {
 	query := "DELETE FROM user_projects WHERE user_id=$1"
 	_, err := db.Conn.Exec(query, userId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return ErrNoRecord
+		}
+		return err
+	}
+	return nil
+}
+
+// Function to delete user project by project id
+func (db Database) DeleteUserProjectByProjectId(projectId int) error {
+	query := "DELETE FROM user_projects WHERE project_id=$1"
+	_, err := db.Conn.Exec(query, projectId)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return ErrNoRecord
