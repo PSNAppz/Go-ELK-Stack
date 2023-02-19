@@ -3,5 +3,5 @@ CREATE TABLE IF NOT EXISTS user_project_logs (
     project_id INT NOT NULL,
     user_id INT NOT NULL,
     operation VARCHAR(20) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT NOW()
 );

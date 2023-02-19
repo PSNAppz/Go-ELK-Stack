@@ -3,5 +3,5 @@ CREATE TABLE projects (
     name VARCHAR(255),
     slug VARCHAR(255),
     description TEXT,
-    created_at TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
