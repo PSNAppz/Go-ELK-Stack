@@ -14,21 +14,39 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// CreateProject creates a new project
-// 1. binds the request body to a Project struct
-// 2. saves the project to the database
-// 3. returns a 201 response with the project if successful
-// 4. returns a 400 response with an error message if the request body is invalid
-// 5. returns a 500 response with an error message if the project could not be saved
-
+// CreateProject is the handler for creating a new project
 func (h *Handler) CreateProject(c *gin.Context) {
-	var project models.Project
-	if err := c.ShouldBindJSON(&project); err != nil {
+	// Bind the JSON request body to a struct
+	var req models.CreateProjectRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		h.Logger.Err(err).Msg("could not parse request body")
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body: %s", err.Error())})
 		return
 	}
-	err := h.DB.CreateProject(&project)
+
+	// Get the user from the database and verify that the user exists
+	user, err := h.DB.GetUserById(req.UserID)
+	if err != nil {
+		h.Logger.Err(err).Msg("could not get user")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("could not get user: %s", err.Error())})
+		return
+	}
+	hashtags := []models.Hashtag{}
+	// Get or create the hashtags for the project
+	hashtags, err = h.DB.GetOrCreateHashtags(hashtags)
+	if err != nil {
+		h.Logger.Err(err).Msg("could not get hashtags")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("could not get hashtags: %s", err.Error())})
+		return
+	}
+
+	// Create the project and save it to the database
+	project := models.Project{
+		Name:        req.Name,
+		Slug:        req.Slug,
+		Description: req.Description,
+	}
+	err = h.DB.CreateProject(&project, &user, &hashtags)
 	if err != nil {
 		h.Logger.Err(err).Msg("could not save project")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("could not save project: %s", err.Error())})
@@ -37,12 +55,8 @@ func (h *Handler) CreateProject(c *gin.Context) {
 	}
 }
 
-// UpdateProject updates a project's information
-// It expects a project ID in the URL and a JSON body that includes the fields to update
-// If the project does not exist, it returns a 404
-// If the JSON body cannot be parsed, it returns a 400
-// If the project cannot be updated in the database, it returns a 500
 func (h *Handler) UpdateProject(c *gin.Context) {
+	// Get the project ID from the URL
 	var id int
 	var project models.Project
 	var err error
@@ -50,11 +64,14 @@ func (h *Handler) UpdateProject(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid project id"})
 		return
 	}
+
+	// Parse the JSON body into a Project object
 	if err = c.ShouldBindJSON(&project); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("could not parse request: %s", err.Error())})
 		return
 	}
 
+	// Update the project in the database
 	err = h.DB.UpdateProject(id, project)
 	if err != nil {
 		switch err {
@@ -159,9 +176,18 @@ func (h *Handler) SearchProjects(c *gin.Context) {
 	// Create the search query
 	// Here the code searches for a query string in the name, slug, and
 	// description fields.
-	body := fmt.Sprintf(
-		`{"query": {"multi_match": {"query": "%s", "fields": ["name", "slug", "description"]}}}`,
-		query)
+	body := fmt.Sprintf(`{
+		"query": {
+			"multi_match": {
+				"query": "%s",
+				"fields": [
+					"name",
+					"slug",
+					"description"
+				]
+			}
+		}
+	}`, query)
 
 	// Execute the search query
 	res, err := h.ESClient.Search(
@@ -192,6 +218,77 @@ func (h *Handler) SearchProjects(c *gin.Context) {
 		return
 	}
 
+	h.Logger.Info().Interface("res", res.Status())
+
+	// Decodes the response body of the Elasticsearch query into the map r
+	var r map[string]interface{}
+	if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
+		h.Logger.Err(err).Msg("elasticsearch error")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": r["hits"]})
+}
+
+func (h *Handler) FuzzySearchProjects(c *gin.Context) {
+	// Get the search query from the request
+	var query string
+	if query, _ = c.GetQuery("q"); query == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no search query present"})
+		return
+	}
+	// Get the fuzziness from the request
+	var fuzziness int
+	if fuzziness, _ = strconv.Atoi(c.DefaultQuery("fuzziness", "1")); fuzziness < 0 || fuzziness > 2 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "fuzziness must be between 0 and 2"})
+		return
+	}
+
+	// Create the search query
+	// Here the code searches for a query string in the name, slug,
+	// description, user_name and hashtag fields.
+	// Fuzziness is set to 1 by default, which means that the search will return results
+	// that are one edit away from the query string.
+	body := fmt.Sprintf(`{
+        "query": {
+            "multi_match": {
+                "query": "%s",
+                "fields": ["name", "slug", "description", "user_name"],
+                "fuzziness": %d
+            }
+        }
+    }`, query, fuzziness)
+
+	// Execute the search query
+	res, err := h.ESClient.Search(
+		h.ESClient.Search.WithContext(context.Background()),
+		h.ESClient.Search.WithIndex("projects"),
+		h.ESClient.Search.WithBody(strings.NewReader(body)),
+		h.ESClient.Search.WithPretty(),
+	)
+	if err != nil {
+		h.Logger.Err(err).Msg("elasticsearch error")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer res.Body.Close()
+	if res.IsError() {
+		// Parse the response error into a map
+		var e map[string]interface{}
+		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
+			h.Logger.Err(err).Msg("error parsing the response body")
+		} else {
+			// Print the response status and error information.
+			h.Logger.Err(fmt.Errorf("[%s] %s: %s",
+				res.Status(),
+				e["error"].(map[string]interface{})["type"],
+				e["error"].(map[string]interface{})["reason"],
+			)).Msg("failed to search fuzzy query")
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": e["error"].(map[string]interface{})["reason"]})
+		return
+	}
+	// Log the response status
 	h.Logger.Info().Interface("res", res.Status())
 
 	// Decodes the response body of the Elasticsearch query into the map r

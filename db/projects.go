@@ -6,7 +6,7 @@ import (
 	"github.com/PSNAppz/Fold-ELK/models"
 )
 
-func (db Database) CreateProject(project *models.Project, user *models.User) error {
+func (db Database) CreateProject(project *models.Project, user *models.User, hashtags *[]models.Hashtag) error {
 	var projectId int
 	query := `INSERT INTO projects(name, slug, description) VALUES ($1, $2, $3) RETURNING id`
 	err := db.Conn.QueryRow(query, project.Name, project.Slug, project.Description).Scan(&projectId)
@@ -20,6 +20,17 @@ func (db Database) CreateProject(project *models.Project, user *models.User) err
 		_, err = db.Conn.Exec(userProjectQuery, projectId, user.ID)
 		if err != nil {
 			return err
+		}
+	}
+
+	// Insert project-hashtag association
+	if hashtags != nil {
+		for _, hashtag := range *hashtags {
+			projectHashtagQuery := `INSERT INTO project_hashtags(project_id, hashtag_id) VALUES ($1, $2)`
+			_, err = db.Conn.Exec(projectHashtagQuery, projectId, hashtag.ID)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
