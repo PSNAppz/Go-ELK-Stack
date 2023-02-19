@@ -11,31 +11,32 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// CreateUser creates a new user in the database.
 func (h *Handler) CreateUser(c *gin.Context) {
+	// Bind the request body to a new User struct
 	var user models.User
 	if err := c.ShouldBindJSON(&user); err != nil {
 		h.Logger.Err(err).Msg("could not parse request body")
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body: %s", err.Error())})
 		return
 	}
+	// Attempt to create the new user in the database
 	err := h.DB.CreateUser(&user)
 	if err != nil {
 		h.Logger.Err(err).Msg("could not save user")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("could not save user: %s", err.Error())})
 	} else {
+		// If successful, return the new user in the response with 201 Created status code
 		c.JSON(http.StatusCreated, gin.H{"user": user})
 	}
 }
 
 // UpdateUser updates a user's information
-// It expects a user ID in the URL and a JSON body that includes the fields to update
-// If the user does not exist, it returns a 404
-// If the JSON body cannot be parsed, it returns a 400
-// If the user cannot be updated in the database, it returns a 500
 func (h *Handler) UpdateUser(c *gin.Context) {
 	var id int
 	var user models.User
 	var err error
+	// It expects a user ID in the URL and a JSON body that includes the fields to update
 	if id, err = strconv.Atoi(c.Param("id")); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
 		return
@@ -44,7 +45,7 @@ func (h *Handler) UpdateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("could not parse request: %s", err.Error())})
 		return
 	}
-
+	// Update the user in the database
 	err = h.DB.UpdateUser(id, user)
 	if err != nil {
 		switch err {
@@ -60,12 +61,36 @@ func (h *Handler) UpdateUser(c *gin.Context) {
 	}
 }
 
+// Delete a user from the database
 func (h *Handler) DeleteUser(c *gin.Context) {
 	var id int
 	var err error
 	if id, err = strconv.Atoi(c.Param("id")); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
 		return
+	}
+	// Delete all associated projects first
+	projects, err := h.DB.GetProjectsByUserId(id)
+	if err != nil {
+		h.Logger.Err(err).Msg("could not fetch projects")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("could not fetch projects: %s", err.Error())})
+		return
+	}
+	// Delete user_project associations
+	err = h.DB.DeleteUserProjectByUserId(id)
+	if err != nil {
+		h.Logger.Err(err).Msg("could not delete user_project")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("could not delete user_project: %s", err.Error())})
+		return
+	}
+	// Loop through the projects by user and delete them
+	for _, project := range projects {
+		err = h.DB.DeleteProject(project.ID)
+		if err != nil {
+			h.Logger.Err(err).Msg("could not delete project")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("could not delete project: %s", err.Error())})
+			return
+		}
 	}
 	err = h.DB.DeleteUser(id)
 	if err != nil {
