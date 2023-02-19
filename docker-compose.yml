@@ -1,0 +1,79 @@
+version: "3"
+
+services:
+  postgres:
+    image: postgres
+    restart: unless-stopped
+    hostname: postgres
+    env_file: .env
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    hostname: api
+    env_file: .env
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+  # Set up an Elasticsearch instance with a single node.
+  # Set the amount of memory that can be used to 512MB.
+
+  elasticsearch:
+    build:
+      context: elasticsearch
+      args:
+        ELASTIC_VERSION: ${ELASTIC_VERSION}
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+    environment:
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      # Use single node discovery in order to disable production mode and avoid bootstrap checks.
+      # see: https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
+      - discovery.type=single-node
+    restart: unless-stopped
+      
+
+  # This code shows how to run logstash with a custom pipeline configuration.
+  logstash:
+    build:
+      context: logstash
+      args:
+        ELASTIC_VERSION: ${ELASTIC_VERSION}
+    env_file: .env
+    volumes:
+      - ./logstash/config/pipelines.yml:/usr/share/logstash/config/pipelines.yml
+      - ./logstash/pipelines/:/usr/share/logstash/pipeline/
+      - ./logstash/queries/:/usr/share/logstash/config/queries/
+    depends_on:
+      - postgres
+      - elasticsearch
+
+  # Visualize the data in Kibana.    
+  kibana:
+    build:
+      context: kibana
+      args:
+        ELASTIC_VERSION: ${ELASTIC_VERSION}
+    volumes:
+      - ./kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro,Z
+    ports:
+      - 5601:5601
+    hostname: kibana
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    driver: local
+  esdata:
+    driver: local
