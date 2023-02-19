@@ -31,6 +31,12 @@ func (h *Handler) Register(group *gin.RouterGroup) {
 	group.DELETE("/users/:id", h.DeleteUser)
 	group.GET("/users", h.GetUsers)
 
+	// Define routes for hashtags
+	group.POST("/hashtags", h.CreateHashtag)
+	group.PATCH("/hashtags/:id", h.UpdateHashtag)
+	group.GET("/hashtags/:id", h.GetHashtag)
+	group.DELETE("/hashtags/:id", h.DeleteHashtag)
+
 	// Define routes for posts
 	group.POST("/projects", h.CreateProject)
 	group.PATCH("/projects/:id", h.UpdateProject)
@@ -40,4 +46,5 @@ func (h *Handler) Register(group *gin.RouterGroup) {
 
 	// Define routes for search
 	group.GET("/search", h.SearchProjects)
+	group.GET("/fuzzy_search/", h.FuzzySearchProjects)
 }
