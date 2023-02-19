@@ -1,5 +1,7 @@
 # Fold-ELK
 
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/12298080-b2a522f0-5323-4aa1-b803-c73160cde976?action=collection%2Ffork&collection-url=entityId%3D12298080-b2a522f0-5323-4aa1-b803-c73160cde976%26entityType%3Dcollection%26workspaceId%3D42654ab9-e148-4e67-b4b3-90fd805dfb7f)
+
 ### The objectives of this repo are as follows:
 
 - To build a data pipeline that syncs and transforms the data stored in a PostgresSQL Database to Elasticsearch, making the data searchable in a fuzzy and relational manner.
