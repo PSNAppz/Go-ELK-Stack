@@ -19,9 +19,20 @@ Data is seeded using faker, which is used to populate the PostgresSQL database.
 - Docker Compose
 - Go
 
-### Setting up the environment
+### Setting up the docker environment
 
 - Clone the repo
 - Run `mv .env.example .env` to create the environment file
 - Run `docker-compose up --build` to build and bootup the ELK stack
 - Once the ELK stack is up and running, you can use the below 
+- Kibana: http://localhost:5601
+- Elasticsearch: http://localhost:9200
+- API: http://localhost:8080
+
+### Running the API locally
+
+The CRUD API can be run locally using the below steps:
+
+- Make sure the ELK stack is up and running using the above steps
+- Run `go build -o bin/application cmd/api/main.go` to build the API binary
+- Run `./bin/application` to run the API and start listening on port 8080
