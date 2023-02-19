@@ -22,7 +22,7 @@ Data is seeded using faker, which is used to populate the PostgresSQL database.
 - Docker Compose
 - Go
 
-### Setting up the docker environment
+### Setting up and building the docker environment
 
 - Clone the repo
 - Run `mv .env.example .env` to create the environment file
@@ -38,4 +38,10 @@ The CRUD API can be run locally using the below steps:
 
 - Make sure the ELK stack is up and running using the above steps
 - Run `go build -o bin/application cmd/api/main.go` to build the API binary
+- Run `export PGURL="postgres://fold-elk:password@localhost:5432/fold_elk?sslmode=disable"`
+- Migrate the database using `migrate -database $PGURL -path db/migrations/ up `
 - Run `./bin/application` to run the API and start listening on port 8080
+
+### Pre Submission Checklist
+- [x] Detailed steps are included that allow us to spin up the services and the data pipeline.
+- [x] [Loom video URL](https://www.loom.com/share/9b76a3cf38cf4a48b40936adae8e74e9)
