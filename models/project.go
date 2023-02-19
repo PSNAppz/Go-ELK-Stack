@@ -14,3 +14,11 @@ type ProjectHashtag struct {
 	HashtagID int `db:"hashtag_id"`
 	ProjectID int `db:"project_id"`
 }
+
+type CreateProjectRequest struct {
+	Name        string    `json:"name" binding:"required"`
+	Slug        string    `json:"slug" binding:"required"`
+	Description string    `json:"description" binding:"required"`
+	UserID      int       `json:"user_id" binding:"required"`
+	Hashtags    []Hashtag `json:"hashtags"`
+}
