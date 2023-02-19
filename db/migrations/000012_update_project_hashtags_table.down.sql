@@ -1,0 +1,1 @@
+ALTER TABLE project_hashtags DROP CONSTRAINT project_hashtags_hashtag_id_fkey;

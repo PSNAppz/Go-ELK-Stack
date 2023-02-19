@@ -1,6 +1,5 @@
-CREATE TABLE IF NOT EXISTS hashtags_logs (
+CREATE TABLE IF NOT EXISTS hashtags(
   id SERIAL PRIMARY KEY,
-  hashtag_id INT NOT NULL,
-  operation VARCHAR(20) NOT NULL,
+  name VARCHAR(255) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );

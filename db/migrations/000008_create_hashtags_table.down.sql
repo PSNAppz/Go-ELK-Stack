@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS hashtags_logs;
+DROP TABLE IF EXISTS hashtags;
