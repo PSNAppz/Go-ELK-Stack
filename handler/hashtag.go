@@ -70,7 +70,7 @@ func (h *Handler) DeleteHashtag(c *gin.Context) {
 		return
 	}
 	// Delete all hashtag_project associations
-	err = h.DB.DeleteHashtagProjectByHashtagId(id)
+	err = h.DB.DeleteProjectHashtagByHashtagId(id)
 	if err != nil {
 		h.Logger.Err(err).Msg("could not delete hashtag_project")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("could not delete hashtag_project: %s", err.Error())})

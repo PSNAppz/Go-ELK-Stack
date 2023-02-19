@@ -31,30 +31,27 @@ func (db Database) GetOrCreateHashtags(hashtags []models.Hashtag) ([]models.Hash
 	var list []models.Hashtag
 	query := `
 		INSERT INTO hashtags (name)
-		SELECT $1
+		SELECT CAST($1 AS VARCHAR)
 		WHERE NOT EXISTS (
 			SELECT id FROM hashtags WHERE name = $1
 		)
 		RETURNING id;
 	`
 	for _, hashtag := range hashtags {
-		row := db.Conn.QueryRow(query, strings.ToLower(hashtag.Name)) // convert to lowercase
+		row := db.Conn.QueryRow(query, strings.ToLower(hashtag.Name)) //lowercase the hashtag
 		var id int
 		err := row.Scan(&id)
 		if err != nil {
-			return nil, err
-		}
-		if id != 0 {
-			// new hashtag created
-			hashtag.ID = id
-			list = append(list, hashtag)
-		} else {
-			// hashtag already exists, so get the id
+			// If no rows are retuned, hashtag might already exist, so get the id
 			row := db.Conn.QueryRow("SELECT id FROM hashtags WHERE name = $1", strings.ToLower(hashtag.Name))
 			err := row.Scan(&id)
 			if err != nil {
 				return nil, err
 			}
+			hashtag.ID = id
+			list = append(list, hashtag)
+		} else {
+			// new hashtag created
 			hashtag.ID = id
 			list = append(list, hashtag)
 		}
@@ -80,8 +77,8 @@ func (db Database) UpdateHashtag(hashtagId int, hashtag models.Hashtag) error {
 }
 
 // Delete the hashtag and all the associations with projects
-func (db Database) DeleteHashtagProjectByHashtagId(hashtagId int) error {
-	query := "DELETE FROM hashtags_projects WHERE hashtag_id=$1"
+func (db Database) DeleteProjectHashtagByHashtagId(hashtagId int) error {
+	query := "DELETE FROM project_hashtags WHERE hashtag_id=$1"
 	_, err := db.Conn.Exec(query, hashtagId)
 	if err != nil {
 		return err

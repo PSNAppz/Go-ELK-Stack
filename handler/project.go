@@ -31,15 +31,18 @@ func (h *Handler) CreateProject(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("could not get user: %s", err.Error())})
 		return
 	}
-	hashtags := []models.Hashtag{}
-	// Get or create the hashtags for the project
-	hashtags, err = h.DB.GetOrCreateHashtags(hashtags)
-	if err != nil {
-		h.Logger.Err(err).Msg("could not get hashtags")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("could not get hashtags: %s", err.Error())})
-		return
+	// Create the hashtags for the project
+	hashtags := make([]models.Hashtag, len(req.Hashtags))
+	for i, hashtagName := range req.Hashtags {
+		hashtag := models.Hashtag{Name: hashtagName}
+		tags, err := h.DB.GetOrCreateHashtags([]models.Hashtag{hashtag})
+		if err != nil {
+			return
+		}
+		hashtags = append(hashtags, tags[i])
 	}
-
+	// Remove the first element of the slice since it is empty
+	hashtags = hashtags[1:]
 	// Create the project and save it to the database
 	project := models.Project{
 		Name:        req.Name,
@@ -183,7 +186,9 @@ func (h *Handler) SearchProjects(c *gin.Context) {
 				"fields": [
 					"name",
 					"slug",
-					"description"
+					"description",
+					"user_name",
+					"hashtags"
 				]
 			}
 		}
@@ -253,7 +258,7 @@ func (h *Handler) FuzzySearchProjects(c *gin.Context) {
         "query": {
             "multi_match": {
                 "query": "%s",
-                "fields": ["name", "slug", "description", "user_name"],
+                "fields": ["name", "slug", "description", "user_name", "hashtags"],
                 "fuzziness": %d
             }
         }

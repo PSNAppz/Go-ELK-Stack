@@ -16,9 +16,9 @@ type ProjectHashtag struct {
 }
 
 type CreateProjectRequest struct {
-	Name        string    `json:"name" binding:"required"`
-	Slug        string    `json:"slug" binding:"required"`
-	Description string    `json:"description" binding:"required"`
-	UserID      int       `json:"user_id" binding:"required"`
-	Hashtags    []Hashtag `json:"hashtags"`
+	Name        string   `json:"name" binding:"required"`
+	Slug        string   `json:"slug" binding:"required"`
+	Description string   `json:"description" binding:"required"`
+	UserID      int      `json:"user_id" binding:"required"`
+	Hashtags    []string `json:"hashtags"`
 }
