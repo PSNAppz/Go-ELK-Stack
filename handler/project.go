@@ -279,9 +279,9 @@ func (h *Handler) Search(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "no search query present"})
 		return
 	}
-	searchType, err := strconv.Atoi(c.DefaultQuery("searchType", "0"))
+	searchType, err := strconv.Atoi(c.DefaultQuery("type", "0"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "searchType must be an integer"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "type must be an integer"})
 		return
 	}
 	// Get the fuzziness from the request
