@@ -16,7 +16,7 @@ func (db Database) CreateUser(user *models.User) error {
 
 	// log the operation for logstash to pick up and send to elasticsearch
 	// Here we are doing this at app level.
-	logQuery := `INSERT INTO user_logs(user_id, operation) VALUES ($1, $2)`
+	logQuery := `INSERT INTO users_logs(user_id, operation) VALUES ($1, $2)`
 	user.ID = id
 	_, err = db.Conn.Exec(logQuery, user.ID, insertOp)
 	if err != nil {
@@ -33,7 +33,7 @@ func (db Database) UpdateUser(userId int, user models.User) error {
 	}
 
 	user.ID = userId
-	logQuery := "INSERT INTO user_logs(user_id, operation) VALUES ($1, $2, $3)"
+	logQuery := "INSERT INTO users_logs(user_id, operation) VALUES ($1, $2, $3)"
 	_, err = db.Conn.Exec(logQuery, user.ID, updateOp)
 	if err != nil {
 		db.Logger.Err(err).Msg("could not log operation for logstash")
@@ -51,10 +51,22 @@ func (db Database) DeleteUser(userId int) error {
 		return err
 	}
 
-	logQuery := "INSERT INTO user_logs(user_id, operation) VALUES ($1, $2)"
+	logQuery := "INSERT INTO users_logs(user_id, operation) VALUES ($1, $2)"
 	_, err = db.Conn.Exec(logQuery, userId, deleteOp)
 	if err != nil {
 		db.Logger.Err(err).Msg("could not log operation for logstash")
+	}
+	return nil
+}
+
+func (db Database) DeleteUserProjectByUserId(userId int) error {
+	query := "DELETE FROM user_projects WHERE user_id=$1"
+	_, err := db.Conn.Exec(query, userId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return ErrNoRecord
+		}
+		return err
 	}
 	return nil
 }
