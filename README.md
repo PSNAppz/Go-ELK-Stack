@@ -74,3 +74,10 @@ The project can be deployed to AWS using Terraform. The Terraform scripts can be
 ### Pre Submission Checklist
 - [x] Detailed steps are included that allow us to spin up the services and the data pipeline.
 - [x] [Loom video URL](https://www.loom.com/share/9b76a3cf38cf4a48b40936adae8e74e9)
+
+### Improvements/TODOs/Known Issues
+
+- Add more tests
+- Update Elasticsearch version to 8
+- Improve API responses and response codes
+- Implement Github actions to run tests, and for continous deployment on every PR/Push 
