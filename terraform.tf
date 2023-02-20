@@ -108,8 +108,9 @@ resource "null_resource" "setup" {
     inline = [
       "sudo chmod +x /home/ubuntu/setup_server.sh",
       "/home/ubuntu/setup_server.sh",
-      "git clone https://oauth2:var.git_access_token@github.com/PSNAppz/Fold-ELK.git && cd Fold-ELK",
-      "docker compose up -d --build"
+      "git clone https://oauth2:${var.git_access_token}@github.com/PSNAppz/Fold-ELK.git && cd Fold-ELK",
+      "mv /home/ubuntu/.env .env",
+      "sudo /home/ubuntu/.docker/cli-plugins/docker-compose up -d --build"
     ]
   }
 
