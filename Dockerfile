@@ -1,8 +1,8 @@
 FROM golang:1.19.5
 
 COPY go.mod go.sum /go/src/github.com/PSNAppz/Fold-ELK/
+COPY .env.sample .env
 WORKDIR /go/src/github.com/PSNAppz/Fold-ELK
-RUN mv .env.example .env
 ENV $(cat /path/to/.env | xargs)
 RUN go mod download
 

@@ -1,7 +1,16 @@
 variable "key_name" {}
 
+variable "git_access_token" {
+  description = "Access token for the private Git repository"
+  type        = string
+}
+
+provider "github" {
+    token = var.token
+}
+
 provider "aws" {
-  region = "us-east-2"
+  region = "us-east-1"
 }
 
 resource "tls_private_key" "example" {
@@ -58,12 +67,15 @@ resource "aws_security_group" "elk_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  tags = {
+    Name = "ELK Docker Server SG"
+  }
 }
 
 # Launch ec2 instance with the below configuration
 resource "aws_instance" "elk_instance" {
-  ami             = "ami-00eeedc4036573771"
-  instance_type   = "t3.micro"
+  ami             = "ami-0557a15b87f6559cf"
+  instance_type   = "t2.micro"
   key_name        = aws_key_pair.generated_key.key_name
   security_groups = [aws_security_group.elk_sg.name]
 
@@ -72,8 +84,7 @@ resource "aws_instance" "elk_instance" {
   }
 }
 
-# an empty resource block
-resource "null_resource" "name" {
+resource "null_resource" "setup" {
 
   # ssh into the ec2 instance 
   connection {
@@ -82,23 +93,23 @@ resource "null_resource" "name" {
     private_key = tls_private_key.example.private_key_pem
     host        = aws_instance.elk_instance.public_ip
   }
-
-  provisioner "file" {
-    source      = "docker-compose.yml"
-    destination = "/home/ubuntu/docker-compose.yml"
+  
+ provisioner "file" {
+    source      = "setup_server.sh"
+    destination = "/home/ubuntu/setup_server.sh"
   }
 
-  # copy the build_docker_image.sh from your computer to the ec2 instance 
   provisioner "file" {
-    source      = "build_docker_image.sh"
-    destination = "/home/ubuntu/build_docker_image.sh"
+    source      = ".env.sample"
+    destination = "/home/ubuntu/.env"
   }
 
-  # set permissions and run the build_docker_image.sh file
   provisioner "remote-exec" {
     inline = [
-      "sudo chmod +x /home/ubuntu/build_docker_image.sh",
-      "/home/ubuntu/build_docker_image.sh"
+      "sudo chmod +x /home/ubuntu/setup_server.sh",
+      "/home/ubuntu/setup_server.sh",
+      "git clone https://oauth2:var.git_access_token@github.com/PSNAppz/Fold-ELK.git && cd Fold-ELK",
+      "docker compose up -d --build"
     ]
   }
 
