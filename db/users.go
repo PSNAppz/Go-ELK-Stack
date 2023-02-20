@@ -33,7 +33,7 @@ func (db Database) UpdateUser(userId int, user models.User) error {
 	}
 
 	user.ID = userId
-	logQuery := "INSERT INTO users_logs(user_id, operation) VALUES ($1, $2, $3)"
+	logQuery := "INSERT INTO users_logs(user_id, operation) VALUES ($1, $2)"
 	_, err = db.Conn.Exec(logQuery, user.ID, updateOp)
 	if err != nil {
 		db.Logger.Err(err).Msg("could not log operation for logstash")

@@ -3,6 +3,7 @@ module github.com/PSNAppz/Fold-ELK
 go 1.19
 
 require (
+	github.com/bxcodec/faker/v3 v3.8.1
 	github.com/elastic/go-elasticsearch/v8 v8.6.0
 	github.com/gin-gonic/gin v1.8.2
 	github.com/lib/pq v1.10.7
