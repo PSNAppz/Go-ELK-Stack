@@ -21,6 +21,7 @@ Data is seeded using faker, which is used to populate the PostgresSQL database.
 - Docker
 - Docker Compose
 - Go
+- Terraform (For deploying to AWS)
 
 ### Setting up and building the docker environment
 
@@ -36,11 +37,39 @@ Data is seeded using faker, which is used to populate the PostgresSQL database.
 
 The CRUD API can be run locally using the below steps:
 
-- Make sure the ELK stack is up and running using the above steps
+- Make sure the ELK stack is up and running using the above steps (except the API service)
 - Run `go build -o bin/application cmd/api/main.go` to build the API binary
 - Run `export PGURL="postgres://fold-elk:password@localhost:5432/fold_elk?sslmode=disable"`
 - Migrate the database using `migrate -database $PGURL -path db/migrations/ up `
 - Run `./bin/application` to run the API and start listening on port 8080
+
+### Seed the database (Optional)
+A seeder binary is provided to seed the database with fake data.
+#### Run the existing seeder binary
+
+- Run `./bin/seeder` to seed the database with dummy data
+#### Modifying & Build the seeder binary
+- Locate the `main.go` file in the `cmd/seed` directory and modify if needed
+- Run `go build -o bin/seeder cmd/seed/main.go` to build the seeder binary
+
+## Running the tests
+
+As of now, the tests are only for the User API. The tests can be run using the below steps:
+
+- Make sure the ELK stack is up and running using the above steps
+- Go inside the `tests` directory `cd tests`
+- Run `go test`
+
+## Deployment
+
+### Deploying to AWS
+The project can be deployed to AWS using Terraform. The Terraform scripts can be located in the project root directory. The script will provision an EC2 instance, install docker and docker-compose and then deploy the ELK stack and the API service.
+
+- Make sure you have Terraform installed
+- Run `terraform init` to initialize the Terraform project
+- Run `terraform plan` to see the changes that will be made
+- Run `terraform apply` to apply the changes
+
 
 ### Pre Submission Checklist
 - [x] Detailed steps are included that allow us to spin up the services and the data pipeline.
