@@ -39,7 +39,7 @@ The CRUD API can be run locally using the below steps:
 
 - Make sure the ELK stack is up and running using the above steps (except the API service)
 - Run `go build -o bin/application cmd/api/main.go` to build the API binary
-- Run `export PGURL="postgres://fold-elk:password@localhost:5432/fold_elk?sslmode=disable"`
+- Run `export PGURL="postgres://go-elk:password@localhost:5432/go_elk?sslmode=disable"`
 - Migrate the database using `migrate -database $PGURL -path db/migrations/ up `
 - Run `./bin/application` to run the API and start listening on port 8080
 
