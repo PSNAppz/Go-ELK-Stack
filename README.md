@@ -1,4 +1,4 @@
-# Fold-ELK
+# ELK (Elasticsearch, Logstash, Kibana) Stack in Golang
 
 [![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/12298080-b2a522f0-5323-4aa1-b803-c73160cde976?action=collection%2Ffork&collection-url=entityId%3D12298080-b2a522f0-5323-4aa1-b803-c73160cde976%26entityType%3Dcollection%26workspaceId%3D42654ab9-e148-4e67-b4b3-90fd805dfb7f)
 
@@ -10,7 +10,7 @@ The postman collection contains all the API endpoints along with examples.
 
 ### Project brief
 
-Fold-ELK has a set of configuration files for the ELK stack (Elasticsearch, Logstash, Kibana). You can follow the below steps to get the ELK stack up and running.
+You can follow the below steps to get the ELK stack up and running.
 CRUD APIs are built using go-gin and the data is stored in PostgresSQL. The data is then synced to Elasticsearch using Logstash. The APIs are then used to query Elasticsearch.
 Data is seeded using faker, which is used to populate the PostgresSQL database.
 
@@ -70,10 +70,6 @@ The project can be deployed to AWS using Terraform. The Terraform scripts can be
 - Run `terraform plan` to see the changes that will be made
 - Run `terraform apply` to apply the changes
 
-
-### Pre Submission Checklist
-- [x] Detailed steps are included that allow us to spin up the services and the data pipeline.
-- [x] [Loom video URL](https://www.loom.com/share/9b76a3cf38cf4a48b40936adae8e74e9)
 
 ### Improvements/TODOs/Known Issues
 
